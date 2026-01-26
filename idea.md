@@ -1,0 +1,16 @@
+# Idea
+- Simple app using tanstack start to import a plan from a pdf to a garmin watch using intervals.icu
+- No need db 
+- All client code
+- Use intervals.icu api to import the plan
+- Use bun as package manager
+- No need to deploy. All in local
+- SPA app design. 
+- Flow: 
+    - Upload pdf plan
+    - Pass to the ai (openrouter api) to extract the plan. API endpoint.
+    - Give a preview of the plan 
+    - Connect to intervals.icu
+    - Upload the plan to intervals.icu
+    - Pass the plan to the garmin device
+- Use the frontend design skill to create the ui (.gemini/skills/fronted-design/SKILL.md)
