@@ -1,9 +1,9 @@
 // ... (imports)
 import { useState } from "react";
-import type { TrainingPlan, Workout, WorkoutType } from "../types/workout";
-import { WorkoutRow } from "./WorkoutRow";
+import type { TrainingPlan, Workout } from "../types/workout";
 import { generateWorkoutId } from "../utils/workout-validator";
 import { PaceConfiguration } from "./PaceConfiguration";
+import { CalendarView } from "./CalendarView";
 import "../styles.css";
 import "../animations.css";
 
@@ -19,8 +19,6 @@ export function PlanPreview({
   onPlanUpdate,
   onPaceMappingChange,
 }: PlanPreviewProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<WorkoutType | "all">("all");
   const [showPaceConfig, setShowPaceConfig] = useState(false);
   const [paceMapping, setPaceMapping] = useState<Record<string, string>>({});
 
@@ -54,6 +52,18 @@ export function PlanPreview({
     const newWorkout: Workout = {
       id: generateWorkoutId(),
       date: lastDate.toISOString().split("T")[0],
+      type: "run",
+      name: "New Workout",
+      description: "Add workout details here",
+    };
+
+    onPlanUpdate({ ...plan, workouts: [...plan.workouts, newWorkout] });
+  };
+
+  const handleAddWorkoutOnDate = (date: string) => {
+    const newWorkout: Workout = {
+      id: generateWorkoutId(),
+      date,
       type: "run",
       name: "New Workout",
       description: "Add workout details here",
@@ -101,23 +111,6 @@ export function PlanPreview({
     });
   };
 
-  // Filter workouts
-  const filteredWorkouts = plan.workouts.filter((workout) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      workout.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      workout.description.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesType = filterType === "all" || workout.type === filterType;
-
-    return matchesSearch && matchesType;
-  });
-
-  // Sort by date
-  const sortedWorkouts = [...filteredWorkouts].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
-
   return (
     <div className="plan-preview">
       {/* Plan Header */}
@@ -147,33 +140,8 @@ export function PlanPreview({
         </div>
       </div>
 
-      {/* Filters & Actions */}
+      {/* Actions Bar */}
       <div className="plan-controls">
-        <div className="filters">
-          <input
-            type="text"
-            placeholder="Search workouts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-
-          <select
-            value={filterType}
-            onChange={(e) =>
-              setFilterType(e.target.value as WorkoutType | "all")
-            }
-            className="filter-select"
-          >
-            <option value="all">All Types</option>
-            <option value="run">🏃 Run</option>
-            <option value="bike">🚴 Bike</option>
-            <option value="swim">🏊 Swim</option>
-            <option value="strength">💪 Strength</option>
-            <option value="rest">😴 Rest</option>
-          </select>
-        </div>
-
         <div className="actions-group">
           <button
             onClick={() => setShowPaceConfig(true)}
@@ -207,42 +175,16 @@ export function PlanPreview({
         </div>
       </div>
 
-      {/* Workouts Table */}
-      <div className="table-container">
-        <table className="workouts-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Name</th>
-              <th>Description</th>
-              <th>Duration</th>
-              <th>Distance</th>
-              <th>Intensity</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedWorkouts.map((workout) => (
-              <WorkoutRow
-                key={workout.id}
-                workout={workout}
-                onUpdate={handleWorkoutUpdate}
-                onDelete={handleWorkoutDelete}
-              />
-            ))}
-          </tbody>
-        </table>
-
-        {sortedWorkouts.length === 0 && (
-          <div className="empty-state">
-            <p>
-              No workouts found. Try adjusting your filters or add a new
-              workout.
-            </p>
-          </div>
-        )}
-      </div>
+      {/* Calendar View */}
+      <CalendarView
+        workouts={plan.workouts}
+        startDate={plan.startDate}
+        endDate={plan.endDate}
+        onWorkoutClick={() => {}}
+        onAddWorkout={handleAddWorkoutOnDate}
+        onWorkoutUpdate={handleWorkoutUpdate}
+        onWorkoutDelete={handleWorkoutDelete}
+      />
 
       {showPaceConfig && (
         <PaceConfiguration

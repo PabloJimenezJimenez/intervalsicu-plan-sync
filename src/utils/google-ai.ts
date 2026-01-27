@@ -11,12 +11,22 @@ import { generatePlanId, generateWorkoutId, calculateWeeks } from './workout-val
 /**
  * Create extraction prompt for AI
  */
-function createExtractionPrompt(): string {
-  return `You are a training plan extraction expert. Your task is to analyze the provided PDF training plan and extract all workouts in a structured format.
+function createExtractionPrompt(startDate?: string): string {
+  const startDateInstruction = startDate 
+    ? `\n\nCRITICAL - USER-PROVIDED START DATE:
+The user wants their training plan to start on ${startDate}. You MUST:
+- Use ${startDate} as the startDate for the plan
+- Calculate ALL workout dates relative to this start date
+- The first workout should be on ${startDate}
+- Maintain the same day-of-week pattern and intervals between workouts as in the original plan
+- Ignore any specific dates mentioned in the PDF - only use the relative structure (e.g., "Week 1 Day 1" becomes ${startDate})`
+    : '';
+
+  return `You are a training plan extraction expert. Your task is to analyze the provided PDF training plan and extract all workouts in a structured format.${startDateInstruction}
 
 Extract the following information:
 1. Plan name (e.g., "12-Week Marathon Training Plan")
-2. Start date and end date (infer from the first and last workout dates if not explicitly stated)
+2. Start date and end date (use the user-provided start date if specified, otherwise infer from the PDF)
 3. All workouts with:
    - Date (YYYY-MM-DD format)
    - Type (run, bike, swim, strength, or rest)
@@ -81,7 +91,8 @@ Return the data as a valid JSON object with this structure:
 export async function extractPlanFromPDF(
   pdfBase64: string,
   apiKey: string,
-  pdfFilename: string
+  pdfFilename: string,
+  startDate?: string
 ): Promise<APIResult<TrainingPlan>> {
   try {
     // Set API key as environment variable for this request
@@ -103,7 +114,7 @@ export async function extractPlanFromPDF(
         {
           role: 'user',
           content: [
-            { type: 'text', text: createExtractionPrompt() },
+            { type: 'text', text: createExtractionPrompt(startDate) },
             {
               type: 'file',
               data: bytes,

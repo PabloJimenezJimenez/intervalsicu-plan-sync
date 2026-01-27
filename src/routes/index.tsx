@@ -3,12 +3,19 @@ import { useState } from "react";
 import { PDFUploader } from "../components/PDFUploader";
 import { LoadingState } from "../components/LoadingState";
 import { StatusBar } from "../components/StatusBar";
+import { DatePicker } from "../components/DatePicker";
 import { hasAPIKeys } from "../utils/storage";
 import { processPDFFile } from "../utils/pdf-parser";
 import { extractPlanFromPDF } from "../utils/google-ai";
 import { getAPIKey } from "../utils/storage";
 import "../styles.css";
 import "../animations.css";
+
+// Helper to get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+};
 
 export const Route = createFileRoute("/")({
   component: IndexPage,
@@ -19,6 +26,7 @@ function IndexPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState(getTodayDate());
 
   const apiKeys = hasAPIKeys();
 
@@ -50,11 +58,12 @@ function IndexPage() {
         throw new Error("Google AI API key not found");
       }
 
-      // Extract plan using Google AI
+      // Extract plan using Google AI with the selected start date
       const result = await extractPlanFromPDF(
         pdfFile.base64,
         googleAIKey,
         pdfFile.filename,
+        startDate,
       );
 
       if (!result.success) {
@@ -129,6 +138,12 @@ function IndexPage() {
         {/* Upload Section */}
         {apiKeys.intervals && apiKeys.googleai && !isProcessing && (
           <div className="upload-section animate-scale-in">
+            <DatePicker
+              value={startDate}
+              onChange={setStartDate}
+              label="Plan Start Date"
+              minDate={getTodayDate()}
+            />
             <PDFUploader
               onFileSelected={handleFileSelected}
               isProcessing={isProcessing}
