@@ -1,15 +1,30 @@
 # Training Plan Importer
 
-A client-side web application that extracts training plans from PDF files using AI and uploads them to Garmin watches via intervals.icu.
+> [!IMPORTANT]
+> **LOCAL USE ONLY**: This project is designed for local use only. It stores API keys directly in your browser's Local Storage. Do not host this application on a public server without modifying the security implementation.
+
+A client-side web application that extracts training plans from PDF files using AI (or imports JSON) and uploads them to Garmin watches via intervals.icu.
+
+## Project Goal
+
+The primary goal of this project is to simplify the process of digitizing training plans. It bridges the gap between static PDF plans and dynamic training platforms by leveraging AI for extraction and APIs for synchronization. It aims to provide a privacy-focused, client-side tool for athletes to manage their training data without the need for a backend server.
 
 ## Features
 
-- 🏃 **PDF Upload**: Drag-and-drop PDF training plan files
-- 🤖 **AI Extraction**: Automatically extract workouts using OpenRouter AI (Claude 3.5 Sonnet)
-- ✏️ **Plan Editing**: Review and edit extracted workouts before uploading
-- ☁️ **Cloud Sync**: Upload to intervals.icu for automatic Garmin synchronization
-- 🎨 **Athletic Design**: Clean, performance-focused UI with smooth animations
-- 🔒 **Privacy First**: 100% client-side, no backend database
+- **Multi-Format Import**: Drag-and-drop PDF training plan files or upload JSON files directly
+- **AI Extraction**: Automatically extract workouts using Google Generative AI (Gemini 2.0 Flash) from PDFs
+- **Plan Editing**: Review and edit extracted workouts before uploading
+- **Calendar View**: Visual calendar interface for reviewing training blocks
+- **Cloud Sync**: Upload to intervals.icu for automatic Garmin synchronization
+- **Athletic Design**: Clean, performance-focused UI with smooth animations
+- **Privacy First**: 100% client-side, no backend database
+
+## Limitations
+
+- **Local Storage Security**: API keys are stored in the browser's `localStorage`. This is secure for local use but unsuitable for public hosting.
+- **AI Accuracy**: PDF extraction relies on LLMs. While generally accurate, it may struggle with complex or poorly formatted layouts. Always review extracted data.
+- **Device Sync**: Syncing to Garmin is handled via intervals.icu. You must have your Garmin account connected to intervals.icu.
+- **Browser State**: Clearing browser data will reset your API keys and configuration.
 
 ## Tech Stack
 
@@ -18,19 +33,18 @@ A client-side web application that extracts training plans from PDF files using 
 - **Package Manager**: Bun
 - **APIs**: 
   - intervals.icu API (workout upload & Garmin sync)
-  - OpenRouter API (AI-powered PDF extraction)
+  - Google Generative AI via AI SDK (AI-powered PDF extraction)
 
 ## Prerequisites
 
 1. **intervals.icu Account & API Key**
    - Sign up at [intervals.icu](https://intervals.icu)
-   - Navigate to Settings → Developer Settings
+   - Navigate to Settings -> Developer Settings
    - Generate API key with `CALENDAR:WRITE` permission
 
-2. **OpenRouter Account & API Key**
-   - Create account at [openrouter.ai](https://openrouter.ai)
-   - Generate API key
-   - Add credits for API usage
+2. **Google AI Studio API Key**
+   - Create account at [Google AI Studio](https://aistudio.google.com/)
+   - Generate API key (Free tier available)
 
 3. **Bun Installed**
    ```bash
@@ -71,19 +85,17 @@ The app will be available at `http://localhost:3000`
 1. **Setup** (First time only)
    - Click "Go to Setup" if API keys aren't configured
    - Enter your intervals.icu API key
-   - Enter your OpenRouter API key
+   - Enter your Google AI Studio API key
    - Test connections to verify
 
-2. **Upload PDF**
-   - Drag and drop your PDF training plan
-   - Or click to browse and select file
-   - Wait for AI extraction (10-30 seconds)
+2. **Upload Plan**
+   - **PDF**: Drag and drop your PDF training plan. The AI will extract the workouts (10-30 seconds).
+   - **JSON**: Upload a pre-formatted JSON file for instant loading.
 
 3. **Review & Edit**
-   - Review extracted workouts in the table
-   - Edit any fields inline (dates, types, descriptions, etc.)
-   - Add or remove workouts as needed
-   - Filter and search through workouts
+   - Review extracted workouts in the list or **Calendar View**.
+   - Edit any fields inline (dates, types, descriptions, etc.).
+   - Configure pace settings if needed.
 
 4. **Upload to intervals.icu**
    - Click "Upload to intervals.icu"
@@ -105,16 +117,21 @@ app-import-plan-garmin/
 │   │   ├── index.tsx        # Landing/upload page
 │   │   ├── setup.tsx        # API key configuration
 │   │   ├── preview.tsx      # Plan review & editing
-│   │   └── success.tsx      # Success confirmation
+│   │   ├── success.tsx      # Success confirmation
 │   ├── components/          # React components
-│   │   ├── PDFUploader.tsx
-│   │   ├── PlanPreview.tsx
-│   │   ├── WorkoutRow.tsx
-│   │   ├── LoadingState.tsx
-│   │   ├── StatusBar.tsx
-│   │   └── ErrorBoundary.tsx
+│   │   ├── PDFUploader.tsx  # PDF Drag & Drop
+│   │   ├── JSONUploader.tsx # JSON File Upload
+│   │   ├── PlanPreview.tsx  # Plan Review Container
+│   │   ├── CalendarView.tsx # Visual Calendar Grid
+│   │   ├── WorkoutRow.tsx   # Row Item Component
+│   │   ├── Header.tsx       # Navigation Header
+│   │   ├── StatusBar.tsx    # Status Indicator
+│   │   ├── DatePicker.tsx   # Date Selection Util
+│   │   ├── PaceConfiguration.tsx # Pace Settings
+│   │   ├── LoadingState.tsx # Loading Spinner
+│   │   └── ErrorBoundary.tsx# Error Catcher
 │   ├── utils/               # Utility functions
-│   │   ├── openrouter.ts    # OpenRouter API client
+│   │   ├── google-ai.ts     # Google AI extraction client
 │   │   ├── intervals-icu.ts # intervals.icu API client
 │   │   ├── pdf-parser.ts    # PDF processing
 │   │   ├── storage.ts       # LocalStorage helpers
@@ -186,11 +203,11 @@ MIT
 
 For issues or questions:
 - intervals.icu API: [https://intervals.icu/api-docs](https://intervals.icu/api-docs)
-- OpenRouter API: [https://openrouter.ai/docs](https://openrouter.ai/docs)
+- Google Gen AI SDK: [https://sdk.vercel.ai/docs/reference/ai-sdk-google](https://sdk.vercel.ai/docs/reference/ai-sdk-google)
 
 ## Credits
 
 Built with:
 - [TanStack Start](https://tanstack.com/start)
 - [intervals.icu](https://intervals.icu)
-- [OpenRouter](https://openrouter.ai)
+- [Google AI SDK](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai)
