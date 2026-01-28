@@ -141,7 +141,10 @@ export function CalendarView({
       {/* Calendar Weeks */}
       <div className="calendar-weeks">
         {weeks.map((week) => (
-          <div key={week.weekNumber} className="calendar-week">
+          <div
+            key={`${week.weekNumber}-${week.weekStart.toISOString()}`}
+            className="calendar-week"
+          >
             <div className="week-label">W{week.weekNumber}</div>
             <div className="week-days">
               {week.days.map((day) => (

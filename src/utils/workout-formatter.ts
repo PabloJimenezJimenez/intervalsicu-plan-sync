@@ -204,6 +204,11 @@ function formatIntensity(
   workoutType: WorkoutType,
   paceMapping: Record<string, string>
 ): string {
+  // Guard against undefined/null intensity
+  if (!intensity) {
+    return workoutType === 'run' ? 'Easy pace' : 'moderate';
+  }
+
   // Check user-defined mapping first
   if (paceMapping[intensity]) {
     const mappedValue = paceMapping[intensity];

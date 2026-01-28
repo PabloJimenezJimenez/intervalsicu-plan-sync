@@ -123,7 +123,7 @@ export async function extractPlanFromPDF(
           ],
         },
       ],
-      temperature: 0.1,
+      temperature: 0.1
     });
 
     // Restore original key

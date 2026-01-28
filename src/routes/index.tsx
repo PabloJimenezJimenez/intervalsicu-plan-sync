@@ -1,15 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PDFUploader } from "../components/PDFUploader";
+import { JSONUploader } from "../components/JSONUploader";
 import { LoadingState } from "../components/LoadingState";
 import { StatusBar } from "../components/StatusBar";
 import { DatePicker } from "../components/DatePicker";
-import { hasAPIKeys } from "../utils/storage";
+import { hasAPIKeys, getAPIKey } from "../utils/storage";
 import { processPDFFile } from "../utils/pdf-parser";
+import { processJSONFile } from "../utils/json-parser";
 import { extractPlanFromPDF } from "../utils/google-ai";
-import { getAPIKey } from "../utils/storage";
 import "../styles.css";
 import "../animations.css";
+
+type UploadMode = "pdf" | "json";
 
 // Helper to get today's date in YYYY-MM-DD format
 const getTodayDate = () => {
@@ -27,8 +30,16 @@ function IndexPage() {
   const [processingMessage, setProcessingMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(getTodayDate());
+  const [uploadMode, setUploadMode] = useState<UploadMode>("pdf");
 
-  const apiKeys = hasAPIKeys();
+  // Initialize with safe defaults to avoid hydration mismatch
+  // localStorage is not available on the server
+  const [apiKeys, setApiKeys] = useState({ intervals: false, googleai: false });
+
+  // Hydrate API keys on client side only
+  useEffect(() => {
+    setApiKeys(hasAPIKeys());
+  }, []);
 
   const steps = [
     {
@@ -41,7 +52,7 @@ function IndexPage() {
     { id: "sync", label: "Sync", completed: false },
   ];
 
-  const handleFileSelected = async (file: File) => {
+  const handlePDFSelected = async (file: File) => {
     setError(null);
     setIsProcessing(true);
     setProcessingMessage("Processing PDF file...");
@@ -86,6 +97,29 @@ function IndexPage() {
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to process PDF");
+      setIsProcessing(false);
+    }
+  };
+
+  const handleJSONSelected = async (file: File) => {
+    setError(null);
+    setIsProcessing(true);
+    setProcessingMessage("Parsing JSON file...");
+
+    try {
+      const result = await processJSONFile(file);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      // Navigate to preview with the parsed plan
+      navigate({
+        to: "/preview",
+        search: { planData: encodeURIComponent(JSON.stringify(result.data)) },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to process JSON");
       setIsProcessing(false);
     }
   };
@@ -136,18 +170,86 @@ function IndexPage() {
         )}
 
         {/* Upload Section */}
-        {apiKeys.intervals && apiKeys.googleai && !isProcessing && (
+        {apiKeys.intervals && !isProcessing && (
           <div className="upload-section animate-scale-in">
-            <DatePicker
-              value={startDate}
-              onChange={setStartDate}
-              label="Plan Start Date"
-              minDate={getTodayDate()}
-            />
-            <PDFUploader
-              onFileSelected={handleFileSelected}
-              isProcessing={isProcessing}
-            />
+            {/* Upload Mode Toggle */}
+            <div className="upload-mode-toggle">
+              <button
+                className={`mode-btn ${uploadMode === "pdf" ? "active" : ""}`}
+                onClick={() => setUploadMode("pdf")}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M14 2v6h6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                PDF + AI
+              </button>
+              <button
+                className={`mode-btn ${uploadMode === "json" ? "active" : ""}`}
+                onClick={() => setUploadMode("json")}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M14 2v6h6M10 13l-2 2 2 2M14 13l2 2-2 2"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                JSON Direct
+              </button>
+            </div>
+
+            {uploadMode === "pdf" && (
+              <>
+                <DatePicker
+                  value={startDate}
+                  onChange={setStartDate}
+                  label="Plan Start Date"
+                  minDate={getTodayDate()}
+                />
+                <PDFUploader
+                  onFileSelected={handlePDFSelected}
+                  isProcessing={isProcessing}
+                />
+                <p className="mode-hint">
+                  Upload a PDF training plan and AI will extract the workouts.
+                  Requires Google AI API key.
+                </p>
+              </>
+            )}
+
+            {uploadMode === "json" && (
+              <>
+                <JSONUploader
+                  onFileSelected={handleJSONSelected}
+                  isProcessing={isProcessing}
+                />
+                <p className="mode-hint">
+                  Upload a pre-formatted JSON file with your training plan. No
+                  AI processing needed.
+                </p>
+              </>
+            )}
 
             {error && (
               <div className="error-banner animate-slide-in-up">
@@ -311,6 +413,55 @@ function IndexPage() {
 
         .upload-section {
           margin-bottom: var(--space-2xl);
+        }
+
+        .upload-mode-toggle {
+          display: flex;
+          justify-content: center;
+          gap: var(--space-md);
+          margin-bottom: var(--space-xl);
+        }
+
+        .mode-btn {
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+          padding: var(--space-md) var(--space-xl);
+          background: var(--color-bg-elevated);
+          border: 2px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          color: var(--color-text-secondary);
+          font-weight: var(--weight-semibold);
+          cursor: pointer;
+          transition: all var(--transition-base);
+          font-size: var(--text-base);
+        }
+
+        .mode-btn:hover {
+          border-color: var(--color-accent);
+          color: var(--color-text-primary);
+          transform: translateY(-2px);
+        }
+
+        .mode-btn.active {
+          border-color: var(--color-accent);
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-glow);
+        }
+
+        .mode-btn.active:hover {
+          transform: translateY(-2px);
+        }
+
+        .mode-hint {
+          text-align: center;
+          color: var(--color-text-tertiary);
+          font-size: var(--text-sm);
+          margin-top: var(--space-md);
+          max-width: 400px;
+          margin-left: auto;
+          margin-right: auto;
         }
 
         .quick-links {
